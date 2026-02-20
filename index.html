@@ -1,1 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<title>YouTube Keyword Research</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+
+*{
+box-sizing:border-box;
+font-family:'Inter',sans-serif;
+}
+
+body{
+margin:0;
+background:#f1f3f7;
+padding:16px;
+}
+
+.container{
+max-width:420px;
+margin:auto;
+}
+
+.header{
+font-size:22px;
+font-weight:700;
+margin-bottom:15px;
+}
+
+.searchBox{
+display:flex;
+gap:10px;
+}
+
+input{
+flex:1;
+padding:14px;
+border-radius:12px;
+border:none;
+background:white;
+box-shadow:0 2px 6px rgba(0,0,0,0.08);
+font-size:15px;
+}
+
+button{
+background:#e53935;
+color:white;
+border:none;
+padding:14px 18px;
+border-radius:12px;
+font-weight:600;
+cursor:pointer;
+box-shadow:0 3px 8px rgba(229,57,53,0.3);
+}
+
+.card{
+background:white;
+margin-top:16px;
+padding:18px;
+border-radius:16px;
+box-shadow:0 4px 12px rgba(0,0,0,0.08);
+}
+
+.row{
+display:flex;
+align-items:center;
+gap:18px;
+}
+
+.circle{
+width:90px;
+height:90px;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+font-weight:700;
+font-size:22px;
+background:
+conic-gradient(#ddd 0deg, #ddd 360deg);
+position:relative;
+transition:0.8s;
+}
+
+.circle::before{
+content:"";
+position:absolute;
+width:70px;
+height:70px;
+background:white;
+border-radius:50%;
+}
+
+.circle span{
+position:relative;
+z-index:1;
+}
+
+.label{
+font-size:17px;
+font-weight:600;
+}
+
+.sub{
+color:#777;
+font-size:14px;
+}
+
+.analysisTitle{
+font-size:18px;
+font-weight:600;
+margin-bottom:8px;
+}
+
+.analysisResult{
+font-size:20px;
+font-weight:700;
+}
+
+.loadingBar{
+width:100%;
+height:5px;
+background:#eee;
+border-radius:10px;
+overflow:hidden;
+margin-top:10px;
+display:none;
+}
+
+.loadingFill{
+height:100%;
+width:0%;
+background:linear-gradient(90deg,#ff4d4d,#ff0000);
+animation:loading 1.2s infinite;
+}
+
+@keyframes loading{
+0%{width:0%;}
+50%{width:80%;}
+100%{width:0%;}
+}
+
+.fadeIn{
+animation:fade 0.6s ease;
+}
+
+@keyframes fade{
+from{opacity:0;transform:translateY(10px);}
+to{opacity:1;transform:translateY(0);}
+}
+
+</style>
+
+</head>
+<body>
+
+<div class="container">
+
+<div class="header">Keyword Research</div>
+
+<div class="searchBox">
+<input id="keyword" placeholder="Enter keyword">
+<button onclick="analyze()">Analyze</button>
+</div>
+
+<div class="loadingBar" id="loading">
+<div class="loadingFill"></div>
+</div>
+
+<div class="card fadeIn">
+
+<div class="row">
+
+<div class="circle" id="volumeCircle">
+<span id="volumeScore">0</span>
+</div>
+
+<div>
+<div class="label">Search Volume</div>
+<div class="sub">High score = high demand</div>
+</div>
+
+</div>
+
+</div>
+
+<div class="card fadeIn">
+
+<div class="row">
+
+<div class="circle" id="competitionCircle">
+<span id="competitionScore">0</span>
+</div>
+
+<div>
+<div class="label">Competition</div>
+<div class="sub">High score = high competition</div>
+</div>
+
+</div>
+
+</div>
+
+<div class="card fadeIn">
+
+<div class="analysisTitle">Analysis Summary</div>
+
+<div class="analysisResult" id="analysisText">
+Enter keyword to analyze
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const API_KEY="AIzaSyBQMYbvAbmY7mDTsJtU-oDiSnetDDYVdmw";
+
+function setCircle(circle, score){
+
+let color;
+
+if(score<40) color="#00c853";
+else if(score<70) color="#ff9800";
+else color="#ff3d00";
+
+let deg=score*3.6;
+
+circle.style.background=
+`conic-gradient(${color} ${deg}deg,#eee ${deg}deg)`;
+
+}
+
+async function analyze(){
+
+let keyword=document.getElementById("keyword").value;
+
+if(!keyword) return;
+
+document.getElementById("loading").style.display="block";
+
+let search=await fetch(
+`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=15&q=${keyword}&key=${API_KEY}`
+);
+
+let searchData=await search.json();
+
+let ids=searchData.items.map(v=>v.id.videoId).join(",");
+
+let stats=await fetch(
+`https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${ids}&key=${API_KEY}`
+);
+
+let statsData=await stats.json();
+
+let totalViews=0;
+
+statsData.items.forEach(v=>{
+totalViews+=parseInt(v.statistics.viewCount);
+});
+
+let avgViews=totalViews/statsData.items.length;
+
+let volume=Math.min(100,Math.floor(avgViews/10000));
+
+let competition=Math.min(100,
+Math.floor(searchData.pageInfo.totalResults/10000));
+
+document.getElementById("loading").style.display="none";
+
+document.getElementById("volumeScore").innerText=volume;
+document.getElementById("competitionScore").innerText=competition;
+
+setCircle(document.getElementById("volumeCircle"),volume);
+setCircle(document.getElementById("competitionCircle"),competition);
+
+let text="";
+
+if(volume>70 && competition<40)
+text="Excellent keyword. High demand and low competition.";
+
+else if(volume>50)
+text="Good keyword. Moderate competition and solid demand.";
+
+else if(competition>70)
+text="Avoid this keyword. Very high competition.";
+
+else
+text="Average keyword. Consider niche variation.";
+
+document.getElementById("analysisText").innerText=text;
+
+}
+
+</script>
+
+</body>
+</html>
